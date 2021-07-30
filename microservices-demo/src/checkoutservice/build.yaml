@@ -1,0 +1,30 @@
+#devops-lvl1 Update Services
+steps:
+# Unit Test Step would be first step, however in this demo there are no unit tests YET.
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/checkoutservice:$SHORT_SHA', 'microservices-demo/src/checkoutservice']
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'docker-push'
+  args: ['push', 'gcr.io/$PROJECT_ID/checkoutservice:$SHORT_SHA']
+- name: 'bash'
+  id: 'update-manifests'
+  args:
+  - -c # -c flag is used to execute multi-line commands
+  - |
+    cd /workspace/microservices-demo/kubernetes-manifests &&
+    sed -i "s/PROJECT_ID/${PROJECT_ID}/g" checkoutservice.yaml && \
+    sed -i "s/TAG/${SHORT_SHA}/g" checkoutservice.yaml \
+#    cp /workspace/microservices-demo/kubernetes-manifests/checkoutservice.yaml /k8s-manifests/checkoutservice.yaml
+#  volumes:
+#  - name: 'k8s-manifests'
+#    path: '/k8s-manifests'
+- name:  'gcr.io/cloud-builders/gke-deploy'
+  args: 
+  - run
+  - --filename=/workspace/microservices-demo/kubernetes-manifests/checkoutservice.yaml
+  - --location=us-west1
+  - --cluster=prd-demo-cluster
+  waitFor: ['update-manifests']
+#  volumes:
+#  - name: 'k8s-manifests'
+#    path: '/k8s-manifests'

@@ -1,0 +1,18 @@
+#devops-lvl1 Update Services
+steps:
+# Unit Test Step would be first step, however in this demo there are no unit tests YET.
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/paymentservice:$SHORT_SHA', 'microservices-demo/src/paymentservice']
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'docker-push'
+  args: ['push', 'gcr.io/$PROJECT_ID/paymentservice:$SHORT_SHA']
+- name: 'bash'
+  args:
+  - -c # -c flag is used to execute multi-line commands
+  - |
+    cd microservices-demo/kubernetes-manifests &&
+    sed "s/PROJECT_ID/${PROJECT_ID}/g" paymentservice.yaml | \
+    sed -i "s/TAG/${SHORT_SHA}/g" paymentservice.yaml
+- name:  'gcr.io/cloud-builders/gke-deploy'
+  args: ['run', '--filename=microservices-demo/kubernetes-manifests/paymentservice.yaml', '--location=us-west1', '--cluster=prd-demo-cluster']
+  waitFor: ['docker-push']

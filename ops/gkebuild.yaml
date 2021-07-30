@@ -1,0 +1,11 @@
+# OPS Pipeline for a simple GKE cluster deployment
+#
+# Version: 0.1
+steps:
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:alpine'
+  id: 'build-k8s'
+  entrypoint: 'gcloud'
+  args: ['deployment-manager', 'deployments', 'create', 'demo-cluster', '--config', 'ops/cluster_setup.yaml']
+- name:  'gcr.io/cloud-builders/gke-deploy'
+  args: ['run', '--filename=microservices-demo/release/kubernetes-manifests.yaml', '--location=us-west1', '--cluster=prd-demo-cluster']
+  waitFor: ['build-k8s']
